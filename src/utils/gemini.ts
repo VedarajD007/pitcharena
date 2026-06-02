@@ -43,64 +43,10 @@ const simulationResponseSchema: Schema = {
     },
     text: {
       type: SchemaType.STRING,
-      description: "The spoken question or reaction by the selected investor.",
-    },
-    investorUpdates: {
-      type: SchemaType.OBJECT,
-      properties: {
-        sarah: {
-          type: SchemaType.OBJECT,
-          properties: {
-            sentiment: { type: SchemaType.STRING, format: "enum", enum: ["friendly", "skeptical", "hostile", "neutral"] },
-            confidence: { type: SchemaType.INTEGER, description: "A percentage from 0 to 100." },
-            risks: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          },
-          required: ["sentiment", "confidence", "risks"],
-        },
-        elena: {
-          type: SchemaType.OBJECT,
-          properties: {
-            sentiment: { type: SchemaType.STRING, format: "enum", enum: ["friendly", "skeptical", "hostile", "neutral"] },
-            confidence: { type: SchemaType.INTEGER, description: "A percentage from 0 to 100." },
-            risks: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          },
-          required: ["sentiment", "confidence", "risks"],
-        },
-        dave: {
-          type: SchemaType.OBJECT,
-          properties: {
-            sentiment: { type: SchemaType.STRING, format: "enum", enum: ["friendly", "skeptical", "hostile", "neutral"] },
-            confidence: { type: SchemaType.INTEGER, description: "A percentage from 0 to 100." },
-            risks: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-          },
-          required: ["sentiment", "confidence", "risks"],
-        },
-      },
-      required: ["sarah", "elena", "dave"],
-    },
-    metricsLedger: {
-      type: SchemaType.OBJECT,
-      description: "Key metrics stated by the founder so far. Update or fill as they are mentioned in the conversation.",
-      properties: {
-        annualRevenue: { type: SchemaType.STRING, description: "Annual Revenue or Annual Recurring Revenue (ARR)" },
-        netProfit: { type: SchemaType.STRING, description: "Net profit amount or net margin percentage" },
-        grossMargin: { type: SchemaType.STRING, description: "Gross profit margin percentage" },
-        traction: { type: SchemaType.STRING, description: "Traction details (e.g. number of active stores, customer count, sales volume)" },
-        growthRate: { type: SchemaType.STRING, description: "Year-over-year revenue/sales growth rate" },
-        valuationRequested: { type: SchemaType.STRING, description: "Valuation of the company requested or implied (e.g. ₹40 Crore)" },
-        fundingGoal: { type: SchemaType.STRING, description: "Funding amount requested and percentage equity (e.g. ₹2 Crore for 5%)" },
-        tam: { type: SchemaType.STRING, description: "Total Addressable Market size (TAM)" },
-        moat: { type: SchemaType.STRING, description: "Core competitive moat description" },
-        teamOrFounderBackground: { type: SchemaType.STRING, description: "Founder's background, team experience, or team size" },
-      },
-    },
-    contradictionFlag: {
-      type: SchemaType.STRING,
-      description: "A string description if the user just contradicted their earlier statements (mentioning the exact contradiction details), else null.",
-      nullable: true,
+      description: "The spoken question or reaction by the selected partner.",
     },
   },
-  required: ["stage", "speaker", "text", "investorUpdates", "metricsLedger", "contradictionFlag"],
+  required: ["stage", "speaker", "text"],
 };
 
 export const SYSTEM_PROMPT = `
@@ -427,7 +373,15 @@ export async function runSimulationStep(
   });
 
   const text = result.response.text();
-  return JSON.parse(text) as SimulationState;
+  const parsed = JSON.parse(text);
+  return {
+    stage: parsed.stage || currentStage,
+    speaker: parsed.speaker || "sarah",
+    text: parsed.text || "",
+    investorUpdates: investorStates,
+    metricsLedger: metricsLedger,
+    contradictionFlag: null,
+  } as SimulationState;
 }
 
 export interface Scorecard {

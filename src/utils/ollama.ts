@@ -287,37 +287,7 @@ YOU MUST RESPOND ONLY WITH A VALID JSON OBJECT matching this TypeScript structur
 {
   "stage": "pitch" | "traction" | "economics" | "moat" | "diligence" | "decision",
   "speaker": "sarah" | "elena" | "dave",
-  "text": "The spoken question or reaction by the selected partner",
-  "investorUpdates": {
-    "sarah": {
-      "sentiment": "friendly" | "skeptical" | "hostile" | "neutral",
-      "confidence": number (0 to 100),
-      "risks": string[]
-    },
-    "elena": {
-      "sentiment": "friendly" | "skeptical" | "hostile" | "neutral",
-      "confidence": number (0 to 100),
-      "risks": string[]
-    },
-    "dave": {
-      "sentiment": "friendly" | "skeptical" | "hostile" | "neutral",
-      "confidence": number (0 to 100),
-      "risks": string[]
-    }
-  },
-  "metricsLedger": {
-    "annualRevenue": string,
-    "netProfit": string,
-    "grossMargin": string,
-    "traction": string,
-    "growthRate": string,
-    "valuationRequested": string,
-    "fundingGoal": string,
-    "tam": string,
-    "moat": string,
-    "teamOrFounderBackground": string
-  },
-  "contradictionFlag": string | null
+  "text": "The spoken question or reaction by the selected partner"
 }
 `;
 
@@ -424,7 +394,15 @@ Generate the next simulation response. Ensure that the investor speaking asks ex
 
   const data = await res.json();
   const rawText = data.message?.content || "";
-  return cleanAndParseJson<SimulationState>(rawText);
+  const parsed = cleanAndParseJson<any>(rawText);
+  return {
+    stage: parsed.stage || currentStage,
+    speaker: parsed.speaker || "sarah",
+    text: parsed.text || "",
+    investorUpdates: investorStates,
+    metricsLedger: metricsLedger,
+    contradictionFlag: null,
+  } as SimulationState;
 }
 
 export async function generateOllamaFinalScorecard(
