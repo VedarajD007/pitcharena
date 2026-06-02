@@ -61,18 +61,21 @@ import {
 } from "@/utils/history";
 
 const DEFAULT_PROFILE = {
-  name: "EcoSphera",
-  industry: "Climate Tech / SaaS",
-  stage: "Seed",
-  fundingGoal: "$1,500,000",
-  oneLiner: "AI-driven carbon footprint optimization platform for mid-market manufacturing.",
-  pitchDeckText: `EcoSphera helps manufacturers track and reduce Scope 1-3 carbon emissions in real-time using IoT integrations and predictive AI modeling.
+  name: "VedaGrocers",
+  industry: "Retail / Grocery Chain",
+  stage: "Growth / Expansion",
+  fundingGoal: "₹2 Crore",
+  oneLiner: "Fast-growing local grocery store chain with 19 stores across Karnataka.",
+  pitchDeckText: `VedaGrocers is a leading grocery store chain in Karnataka, India. 
+Started in 2018 with a single store, expanding to 5 local bazars, and now operating 19 active stores across Karnataka.
+We promote organic products, use EVs for home deliveries, and focus on sustainable local operations.
 
-Market Size (TAM): $8 Billion addressable SaaS market.
-Traction: 12 enterprise pilots active, $180k ARR contract value signed. 15% Month-over-Month customer growth.
-Unit Economics: Average Contract Value (ACV) of $15,000/year, CAC is $3,000, LTV is $45,000 (3-year customer lifecycle). 94% gross margin.
-Moat: Proprietary ML carbon-emission database trained on over 500 manufacturing plants, integrations with ERP systems (SAP, Oracle) that are hard to rip out.
-Team: Co-founders from MIT Energy Initiative and former Senior Engineers at Siemens.`,
+Asking: ₹2 Crore for 5% of the company (₹40 Crore valuation).
+Market Size (TAM): ₹50,000 Crore retail grocery market in South India.
+Traction: 19 active physical stores, consistent year-over-year revenue growth.
+Unit Economics: Healthy operating margins, stable average revenue per store.
+Moat: Local brand equity, established regional supply chain networks, and customer loyalty.
+Team: Led by experienced local retail operators and supply chain specialists.`,
 };
 
 export default function Home() {
