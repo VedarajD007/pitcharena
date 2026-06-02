@@ -83,15 +83,16 @@ YOU MUST RESPOND ONLY WITH A VALID JSON OBJECT matching this TypeScript structur
     }
   },
   "metricsLedger": {
-    "arr": string,
-    "mrr": string,
-    "cac": string,
-    "ltv": string,
-    "paybackPeriod": string,
+    "annualRevenue": string,
+    "netProfit": string,
     "grossMargin": string,
+    "traction": string,
+    "growthRate": string,
+    "valuationRequested": string,
+    "fundingGoal": string,
     "tam": string,
     "moat": string,
-    "teamSize": string
+    "teamOrFounderBackground": string
   },
   "contradictionFlag": string | null
 }
@@ -146,14 +147,26 @@ export async function runOllamaSimulationStep(
   metricsLedger: Record<string, string>,
   investorStates: { sarah: InvestorState; elena: InvestorState; dave: InvestorState }
 ): Promise<SimulationState> {
-  const prompt = `
-Startup Profile:
+  const founderPitch = conversation.find((m) => m.sender === "founder")?.text || "";
+  let startupProfileContext = `Startup Profile:
 - Name: ${startupProfile.name}
 - One-Liner: ${startupProfile.oneLiner}
 - Industry: ${startupProfile.industry}
 - Funding Stage: ${startupProfile.stage}
 - Funding Goal: ${startupProfile.fundingGoal}
-- Pitch Deck Details/Outline: ${startupProfile.pitchDeckText}
+- Pitch Deck Details/Outline: ${startupProfile.pitchDeckText}`;
+
+  if (founderPitch) {
+    startupProfileContext = `Startup Profile (Derived strictly from the founder's actual opening pitch):
+- Name: ${startupProfile.name}
+- Funding Stage: ${startupProfile.stage}
+- Funding Goal: ${startupProfile.fundingGoal}
+- Founder's Opening Pitch: ${founderPitch}
+- IMPORTANT: Ignore all preset template/default details. The business being pitched is defined ONLY by the founder's opening pitch above. Assess only the business, metrics, and operations mentioned in this pitch and subsequent messages.`;
+  }
+
+  const prompt = `
+${startupProfileContext}
 
 Current Simulation State:
 - Current Stage: ${currentStage}
@@ -203,13 +216,25 @@ export async function generateOllamaFinalScorecard(
   metricsLedger: Record<string, string>,
   investorStates: { sarah: InvestorState; elena: InvestorState; dave: InvestorState }
 ): Promise<Scorecard> {
-  const prompt = `
-Startup Profile:
+  const founderPitch = conversation.find((m) => m.sender === "founder")?.text || "";
+  let startupProfileContext = `Startup Profile:
 - Name: ${startupProfile.name}
 - One-Liner: ${startupProfile.oneLiner}
 - Industry: ${startupProfile.industry}
 - Funding Stage: ${startupProfile.stage}
+- Funding Goal: ${startupProfile.fundingGoal}`;
+
+  if (founderPitch) {
+    startupProfileContext = `Startup Profile (Derived strictly from the founder's actual opening pitch):
+- Name: ${startupProfile.name}
+- Funding Stage: ${startupProfile.stage}
 - Funding Goal: ${startupProfile.fundingGoal}
+- Founder's Opening Pitch: ${founderPitch}
+- IMPORTANT: Evaluate strictly based on the company described in the Founder's Opening Pitch. Do not use any preset templates or unrelated details.`;
+  }
+
+  const prompt = `
+${startupProfileContext}
 
 Metrics Stated (Metrics Ledger):
 ${JSON.stringify(metricsLedger)}

@@ -82,15 +82,16 @@ const simulationResponseSchema: Schema = {
       type: SchemaType.OBJECT,
       description: "Key metrics stated by the founder so far. Update or fill as they are mentioned in the conversation.",
       properties: {
-        arr: { type: SchemaType.STRING, description: "Annual Recurring Revenue (ARR)" },
-        mrr: { type: SchemaType.STRING, description: "Monthly Recurring Revenue (MRR)" },
-        cac: { type: SchemaType.STRING, description: "Customer Acquisition Cost (CAC)" },
-        ltv: { type: SchemaType.STRING, description: "Lifetime Value (LTV)" },
-        paybackPeriod: { type: SchemaType.STRING, description: "CAC Payback period in months" },
-        grossMargin: { type: SchemaType.STRING, description: "Gross margin percentage" },
+        annualRevenue: { type: SchemaType.STRING, description: "Annual Revenue or Annual Recurring Revenue (ARR)" },
+        netProfit: { type: SchemaType.STRING, description: "Net profit amount or net margin percentage" },
+        grossMargin: { type: SchemaType.STRING, description: "Gross profit margin percentage" },
+        traction: { type: SchemaType.STRING, description: "Traction details (e.g. number of active stores, customer count, sales volume)" },
+        growthRate: { type: SchemaType.STRING, description: "Year-over-year revenue/sales growth rate" },
+        valuationRequested: { type: SchemaType.STRING, description: "Valuation of the company requested or implied (e.g. ₹40 Crore)" },
+        fundingGoal: { type: SchemaType.STRING, description: "Funding amount requested and percentage equity (e.g. ₹2 Crore for 5%)" },
         tam: { type: SchemaType.STRING, description: "Total Addressable Market size (TAM)" },
         moat: { type: SchemaType.STRING, description: "Core competitive moat description" },
-        teamSize: { type: SchemaType.STRING, description: "Size of the team or founders background" },
+        teamOrFounderBackground: { type: SchemaType.STRING, description: "Founder's background, team experience, or team size" },
       },
     },
     contradictionFlag: {
@@ -157,14 +158,27 @@ export async function runSimulationStep(
     },
   });
 
-  const prompt = `
-  Startup Profile:
+  const founderPitch = conversation.find((m) => m.sender === "founder")?.text || "";
+
+  let startupProfileContext = `Startup Profile:
   - Name: ${startupProfile.name}
   - One-Liner: ${startupProfile.oneLiner}
   - Industry: ${startupProfile.industry}
   - Funding Stage: ${startupProfile.stage}
   - Funding Goal: ${startupProfile.fundingGoal}
-  - Pitch Deck Details/Outline: ${startupProfile.pitchDeckText}
+  - Pitch Deck Details/Outline: ${startupProfile.pitchDeckText}`;
+
+  if (founderPitch) {
+    startupProfileContext = `Startup Profile (Derived strictly from the founder's actual opening pitch):
+  - Name: ${startupProfile.name}
+  - Funding Stage: ${startupProfile.stage}
+  - Funding Goal: ${startupProfile.fundingGoal}
+  - Founder's Opening Pitch: ${founderPitch}
+  - IMPORTANT: Ignore all preset template/default details. The business being pitched is defined ONLY by the founder's opening pitch above. Assess only the business, metrics, and operations mentioned in this pitch and subsequent messages.`;
+  }
+
+  const prompt = `
+  ${startupProfileContext}
 
   Current Simulation State:
   - Current Stage: ${currentStage}
@@ -312,13 +326,24 @@ export async function generateFinalScorecard(
     },
   });
 
-  const prompt = `
-  You are the Lead Investment Committee Evaluator summarizing the results of the PitchArena simulation for:
-  Startup: ${startupProfile.name}
+  const founderPitch = conversation.find((m) => m.sender === "founder")?.text || "";
+  let startupProfileContext = `Startup: ${startupProfile.name}
   One-liner: ${startupProfile.oneLiner}
   Industry: ${startupProfile.industry}
   Stage: ${startupProfile.stage}
+  Funding Goal: ${startupProfile.fundingGoal}`;
+
+  if (founderPitch) {
+    startupProfileContext = `Startup: ${startupProfile.name}
+  Funding Stage: ${startupProfile.stage}
   Funding Goal: ${startupProfile.fundingGoal}
+  Founder's Opening Pitch: ${founderPitch}
+  IMPORTANT: Evaluate strictly based on the company described in the Founder's Opening Pitch. Do not use any preset templates or unrelated details.`;
+  }
+
+  const prompt = `
+  You are the Lead Investment Committee Evaluator summarizing the results of the PitchArena simulation for:
+  ${startupProfileContext}
   
   Metrics Stated (Metrics Ledger):
   ${JSON.stringify(metricsLedger)}
