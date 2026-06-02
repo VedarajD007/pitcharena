@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url = "http://localhost:11434", model, messages, systemPrompt, temperature = 0.7 } = body;
+    const { url = "http://localhost:11434", model, messages, systemPrompt, temperature = 0.7, options = {} } = body;
 
     if (!model) {
       return NextResponse.json({ error: "Missing 'model' parameter" }, { status: 400 });
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
         stream: false,
         options: {
           temperature,
+          num_predict: 400, // Limit predicted tokens by default for faster CPU generation
+          ...options,
         },
         format: "json",
       }),

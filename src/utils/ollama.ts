@@ -188,6 +188,9 @@ Generate the next simulation response. Ensure that the investor speaking asks ex
       systemPrompt: OLLAMA_SYSTEM_PROMPT,
       messages: [{ sender: "founder" as const, text: prompt, timestamp: "", id: "" }],
       temperature: 0.7,
+      options: {
+        num_predict: 400, // Limit predicted tokens to improve response speed on CPU
+      },
     }),
   });
 
@@ -258,6 +261,9 @@ Generate a structured scorecard. Produce realistic terms (valuation, investment 
       systemPrompt: OLLAMA_SCORECARD_SYSTEM_PROMPT,
       messages: [{ sender: "founder" as const, text: prompt, timestamp: "", id: "" }],
       temperature: 0.5, // Lower temperature for more consistent scorecard structures
+      options: {
+        num_predict: 1000, // Budget more tokens for the evaluation scorecard
+      },
     }),
   });
 
