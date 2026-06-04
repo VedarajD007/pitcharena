@@ -19,7 +19,7 @@ export interface SavedPitchSession {
     dave: InvestorState;
   };
   scorecard: Scorecard | null;
-  engine: "gemini" | "ollama";
+  engine: "gemini" | "ollama" | "huggingface";
   modelName?: string;
 }
 

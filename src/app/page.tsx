@@ -53,6 +53,10 @@ import {
   generateOllamaFinalScorecard,
 } from "@/utils/ollama";
 import {
+  runHFSimulationStep,
+  generateHFFinalScorecard,
+} from "@/utils/huggingface";
+import {
   SavedPitchSession,
   getSavedSessions,
   savePitchSession,
@@ -110,7 +114,9 @@ export default function Home() {
   const [isGeneratingScorecard, setIsGeneratingScorecard] = useState(false);
 
   // Engine and Ollama Configuration States
-  const [aiEngine, setAiEngine] = useState<"gemini" | "ollama">("ollama");
+  const [aiEngine, setAiEngine] = useState<"gemini" | "ollama" | "huggingface">("ollama");
+  const [hfToken, setHfToken] = useState("");
+  const [selectedHFModel, setSelectedHFModel] = useState("Qwen/Qwen2.5-72B-Instruct");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
   const [selectedOllamaModel, setSelectedOllamaModel] = useState("llama3");
@@ -223,9 +229,19 @@ export default function Home() {
       localStorage.setItem("pitch_arena_gemini_key", userKey);
     }
 
-    const savedEngine = localStorage.getItem("pitch_arena_engine") as "gemini" | "ollama" | null;
+    const savedEngine = localStorage.getItem("pitch_arena_engine") as "gemini" | "ollama" | "huggingface" | null;
     if (savedEngine) {
       setAiEngine(savedEngine);
+    }
+
+    const savedHfToken = localStorage.getItem("pitch_arena_hf_token");
+    if (savedHfToken) {
+      setHfToken(savedHfToken);
+    }
+
+    const savedHfModel = localStorage.getItem("pitch_arena_hf_model");
+    if (savedHfModel) {
+      setSelectedHFModel(savedHfModel);
     }
 
     const savedOllamaUrl = localStorage.getItem("pitch_arena_ollama_url");
@@ -250,7 +266,7 @@ export default function Home() {
   }, [mounted, aiEngine, ollamaUrl]);
 
   // Settings modification handlers
-  const handleEngineChange = (engine: "gemini" | "ollama") => {
+  const handleEngineChange = (engine: "gemini" | "ollama" | "huggingface") => {
     setAiEngine(engine);
     localStorage.setItem("pitch_arena_engine", engine);
   };
@@ -275,6 +291,8 @@ export default function Home() {
     setAiEngine(session.engine);
     if (session.engine === "ollama" && session.modelName) {
       setSelectedOllamaModel(session.modelName);
+    } else if (session.engine === "huggingface" && session.modelName) {
+      setSelectedHFModel(session.modelName);
     }
     
     if (session.scorecard) {
@@ -351,6 +369,10 @@ export default function Home() {
       alert("Please enter a valid Gemini API Key to run the simulation.");
       return;
     }
+    if (aiEngine === "huggingface" && !hfToken) {
+      alert("Please enter a valid Hugging Face API Token to run the simulation.");
+      return;
+    }
     if (aiEngine === "ollama" && ollamaStatus === "disconnected") {
       alert("Ollama is currently offline. Please ensure Ollama is running locally and try again.");
       return;
@@ -402,6 +424,16 @@ export default function Home() {
           metricsLedger,
           investorStates,
           pdfFile || undefined
+        );
+      } else if (aiEngine === "huggingface") {
+        response = await runHFSimulationStep(
+          hfToken,
+          selectedHFModel,
+          startupProfile,
+          updatedConversation,
+          currentStage,
+          metricsLedger,
+          investorStates
         );
       } else {
         response = await runOllamaSimulationStep(
@@ -491,6 +523,15 @@ export default function Home() {
           activeInvestor,
           pdfFile || undefined
         );
+      } else if (aiEngine === "huggingface") {
+        response = await generateHFFinalScorecard(
+          hfToken,
+          selectedHFModel,
+          startupProfile,
+          activeConv,
+          activeMetrics,
+          activeInvestor
+        );
       } else {
         response = await generateOllamaFinalScorecard(
           ollamaUrl,
@@ -512,7 +553,7 @@ export default function Home() {
         investorStates: activeInvestor,
         scorecard: response,
         engine: aiEngine,
-        modelName: aiEngine === "ollama" ? selectedOllamaModel : undefined,
+        modelName: aiEngine === "ollama" ? selectedOllamaModel : aiEngine === "huggingface" ? selectedHFModel : undefined,
       });
 
       setSavedSessions(getSavedSessions());
@@ -617,6 +658,16 @@ export default function Home() {
               Gemini API
             </button>
             <button
+              onClick={() => handleEngineChange("huggingface")}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                aiEngine === "huggingface"
+                  ? "bg-indigo-650 text-slate-100 font-bold shadow-md shadow-indigo-550/10"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Hugging Face
+            </button>
+            <button
               onClick={() => handleEngineChange("ollama")}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 aiEngine === "ollama"
@@ -629,7 +680,7 @@ export default function Home() {
           </div>
 
           {/* Conditionally Render Key Input or status indicator */}
-          {aiEngine === "gemini" ? (
+          {aiEngine === "gemini" && (
             <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800/80">
               <Lock className="h-3.5 w-3.5 text-indigo-400" />
               <input
@@ -645,8 +696,36 @@ export default function Home() {
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
               )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2.5 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800/80 select-none">
+          )}
+          {aiEngine === "huggingface" && (
+            <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800/80">
+              <Lock className="h-3.5 w-3.5 text-indigo-400" />
+              <input
+                type="password"
+                placeholder="Enter HF API Token..."
+                value={hfToken}
+                onChange={(e) => {
+                  setHfToken(e.target.value);
+                  localStorage.setItem("pitch_arena_hf_token", e.target.value);
+                }}
+                className="bg-transparent text-xs text-slate-350 placeholder-slate-500 focus:outline-none w-40"
+              />
+              <select
+                value={selectedHFModel}
+                onChange={(e) => {
+                  setSelectedHFModel(e.target.value);
+                  localStorage.setItem("pitch_arena_hf_model", e.target.value);
+                }}
+                className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-slate-350 focus:outline-none max-w-[130px] font-semibold"
+              >
+                <option value="meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B</option>
+                <option value="Qwen/Qwen2.5-72B-Instruct">Qwen 2.5 72B</option>
+                <option value="meta-llama/Meta-Llama-3-8B-Instruct">Llama 3 8B</option>
+              </select>
+            </div>
+          )}
+          {aiEngine === "ollama" && (
+            <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800/80 select-none">
               <Database className="h-3.5 w-3.5 text-indigo-450" />
               <span className="text-xs text-slate-350 font-bold truncate max-w-[100px]">
                 {selectedOllamaModel || "No Model"}
@@ -886,6 +965,52 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Hugging Face Configuration Section */}
+              {aiEngine === "huggingface" && (
+                <div className="mt-6 pt-6 border-t border-slate-800/80">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Settings className="h-4 w-4 text-indigo-400" />
+                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider">Hugging Face Configuration</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Hugging Face Token
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Enter HF API Token (Bearer Token)..."
+                        value={hfToken}
+                        onChange={(e) => {
+                          setHfToken(e.target.value);
+                          localStorage.setItem("pitch_arena_hf_token", e.target.value);
+                        }}
+                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                        Select Hugging Face Model
+                      </label>
+                      <select
+                        value={selectedHFModel}
+                        onChange={(e) => {
+                          setSelectedHFModel(e.target.value);
+                          localStorage.setItem("pitch_arena_hf_model", e.target.value);
+                        }}
+                        className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none transition-all cursor-pointer font-semibold"
+                      >
+                        <option value="meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B Instruct</option>
+                        <option value="Qwen/Qwen2.5-72B-Instruct">Qwen 2.5 72B Instruct</option>
+                        <option value="meta-llama/Meta-Llama-3-8B-Instruct">Llama 3 8B Instruct</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -960,6 +1085,11 @@ export default function Home() {
               {aiEngine === "gemini" && !apiKey && (
                 <p className="text-[11px] text-amber-400/80 text-center mt-3 flex items-center gap-1.5 justify-center">
                   <AlertTriangle className="h-3 w-3" /> Please enter your Gemini API Key in the top lock bar.
+                </p>
+              )}
+              {aiEngine === "huggingface" && !hfToken && (
+                <p className="text-[11px] text-amber-400/80 text-center mt-3 flex items-center gap-1.5 justify-center">
+                  <AlertTriangle className="h-3 w-3" /> Please enter your Hugging Face API Token in the top lock bar.
                 </p>
               )}
               {aiEngine === "ollama" && ollamaStatus === "disconnected" && (
