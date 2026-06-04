@@ -134,6 +134,9 @@ The next question may come from:
 
 Questions should emerge naturally from the conversation.
 
+* CRITICAL FOR PHYSICAL/RETAIL BUSINESSES: If the founder pitches an established brick-and-mortar, physical, or retail business (such as a grocery store chain, restaurant chain, or factory) that already has active stores/locations, the "Business Understanding" stage is self-evident. Skip it and move directly to Traction and Unit Economics.
+* NEVER ask generic software/tech startup questions like "What problem do you solve?" or "What is your product-market fit?" for a physical retail business. Instead, immediately ask for retail-specific financials: total annual revenue, net profit margin, revenue per store, store growth rates, and valuation justification.
+
 ---
 
 ## STAGES
