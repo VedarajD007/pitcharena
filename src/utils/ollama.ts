@@ -360,6 +360,17 @@ export async function runOllamaSimulationStep(
 - IMPORTANT: Ignore all preset template/default details. The business being pitched is defined ONLY by the founder's opening pitch above. Assess only the business, metrics, and operations mentioned in this pitch and subsequent messages.`;
   }
 
+  // Keep only the last 6 messages of conversation to minimize context size (speeds up CPU prefill dramatically)
+  const conversationSnippet = conversation.slice(-6);
+  // Ensure the founder's opening pitch (the first user message) is always included if it's not in the last 6
+  const founderPitchMessage = conversation.find((m) => m.sender === "founder");
+  const isFounderPitchIncluded = conversationSnippet.some((m) => m.id === founderPitchMessage?.id);
+  
+  const historyMessages = [...conversationSnippet];
+  if (founderPitchMessage && !isFounderPitchIncluded) {
+    historyMessages.unshift(founderPitchMessage);
+  }
+
   const prompt = `
 ${startupProfileContext}
 
@@ -368,8 +379,8 @@ Current Simulation State:
 - Existing Metrics Ledger: ${JSON.stringify(metricsLedger)}
 - Current Investor Stats: ${JSON.stringify(investorStates)}
 
-Conversation History:
-${conversation.map((m) => `[${m.sender.toUpperCase()}]: ${m.text}`).join("\n")}
+Conversation History (Trimming older messages for high speed):
+${historyMessages.map((m) => `[${m.sender.toUpperCase()}]: ${m.text}`).join("\n")}
 
 Generate the next simulation response. Ensure that the investor speaking asks exactly one sharp question or reacts to the last message, updating the state, sentiment, metricsLedger, and checking for any metric contradictions.
 `;
@@ -384,7 +395,8 @@ Generate the next simulation response. Ensure that the investor speaking asks ex
       messages: [{ sender: "founder" as const, text: prompt, timestamp: "", id: "" }],
       temperature: 0.7,
       options: {
-        num_predict: 400, // Limit predicted tokens to improve response speed on CPU
+        num_predict: 250, // Capping prediction to 250 tokens for even faster response
+        num_ctx: 1024,    // Restrict context length to speed up CPU prefill
       },
     }),
   });
